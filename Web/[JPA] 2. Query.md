@@ -6,14 +6,29 @@ JPA에서 데이터베이스에 접근하기 위한 객체로 인터페이스로
 
 
 
-
-
 ## JPA Query
 
 * find...By...
 * read...By...
 * query...By...
 * count...By...
+
+
+
+### 기본 제공 Method
+
+| Query       | Sample                                                       | Description                                                  | Throws                                                       |
+| ----------- | ------------------------------------------------------------ | ------------------------------------------------------------ | ------------------------------------------------------------ |
+| save        | **User** save(User user)                                     | 해당 entity 저장                                             | `IllegalArgumentException` - in case the given entity is null |
+| saveAll     | **List<User>** saveAll(List<User> users)                     | 모든 entities 저장                                           | `IllegalArgumentException` - in case the given [`entities`](https://docs.oracle.com/javase/8/docs/api/java/lang/Iterable.html?is-external=true) or one of its entities is null |
+| findById    | Optional<User> findById(ID id)                               | id에 해당하는 데이터 반환                                    | `IllegalArgumentException` - if id is null.                  |
+| existsById  | boolean existsById(ID id)                                    | 해당 id를 가진 데이터가 있으면 true, 없으면 false return     | `IllegalArgumentException` - if id is null                   |
+| findAll     | List<User> findAll()<br />List<User> findAllByOrderByLastname() | 모든 데이터를 반환<br />모든 데이터를 가져와서 Lastname순으로 정렬함 (OrderBy를 사용하려면 findAll뒤에 By를 붙여줘야함) |                                                              |
+| findAllById | List<User> findAllById(ID id)                                | id에 해당하는 모든 데이터 반환                               | `IllegalArgumentException` - in case the given [`ids`](https://docs.oracle.com/javase/8/docs/api/java/lang/Iterable.html?is-external=true) or one of its items is null |
+| count       | long userRepository.count()                                  | 모든 데이터 갯수 반환                                        |                                                              |
+| delete      | @Transactional<br />void delete(User user)                   | 해당 데이터 삭제                                             | `IllegalArgumentException` - in case the given entity is null |
+| deleteById  | @Transactional<br />void deleteById(ID id)                   | 해당 id 가진 데이터 삭제                                     | `IllegalArgumentException` - in case the given id is null    |
+| deleteAll   | @Transactional<br />void deleteAll()                         | 모든 데이터 삭제                                             | `IllegalArgumentException` - in case the given entities or one of its entities is null |
 
 
 
@@ -98,3 +113,6 @@ public class DynamicQueryTest {
 
 * [https://velog.io/@jayjay28/JPA%EB%A5%BC-%EC%9D%B4%EC%9A%A9%ED%95%9C-%EB%8B%A8%EC%88%9C-%EA%B2%8C%EC%8B%9C%EB%AC%BC-%EC%B2%98%EB%A6%AC](https://velog.io/@jayjay28/JPA를-이용한-단순-게시물-처리)
 * [https://medium.com/@ish453525/springboot-jpa%EC%9D%98-querydsl-b7ec9b4d19a8](https://medium.com/@ish453525/springboot-jpa의-querydsl-b7ec9b4d19a8)
+* https://gguldh.tistory.com/18
+* https://docs.spring.io/spring-data/commons/docs/current/api/org/springframework/data/repository/CrudRepository.html
+
