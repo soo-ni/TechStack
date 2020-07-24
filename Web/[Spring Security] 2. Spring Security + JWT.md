@@ -153,13 +153,39 @@ public class JwtAuthenticationFilter extends GenericFilterBean {
 ## CustomUserDetailService
 
 토큰에 저장된 유저 정보를 활용: UserDetailsService를 상속받아 재정의
+추후에 해당 내용으로 UsernamePasswordAuthenticationToken 확인
 
 ```java
+@RequiredArgsConstructor
 @Service
 public class CustomUserDetailService implements UserDetailsService {
+	
+    private final UserRepository userRepository;
 
+    @Override
+    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+        return userRepository.findById(Integer.parseInt(username));
+    }
 }
 ```
+
+```java
+@RequiredArgsConstructor
+@Component
+public class JwtTokenProvider {
+    // ...생략...
+    
+	// JWT 토큰에서 인증 정보 조회
+    public Authentication getAuthentication(String token) {
+        UserDetails userDetails = userDetailsService.loadUserByUsername(this.getUserPk(token));
+        return new UsernamePasswordAuthenticationToken(userDetails, "", userDetails.getAuthorities());
+    }
+    
+    // ...생략...
+}
+```
+
+
 
 
 
