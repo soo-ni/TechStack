@@ -2,11 +2,21 @@
 
 Redis를 이용해 사용자를 관리해보자 :thinking:
 
+1. login - redis에 user이름(key) + 토큰 저장
+
+2. logout
+2-1. redis에 user이름 + 토큰 저장한거 삭제
+2-2. 로그아웃 요청온 토큰 redis에 저장 (만료 시간 설정: 로그인 만료시간만큼 설정)
+
+3. 토큰 접근시 redis에 있으면 filter에서 로그아웃된사람이라고 걸러줌
+
 
 
 ## Redis Cache
 
 spring-data-redis lib 이용해 Redis를 캐시 storage로 사용
+
+redis client: Lettuce
 
 
 
@@ -17,6 +27,7 @@ spring-data-redis lib 이용해 Redis를 캐시 storage로 사용
 ``` 
 implementation 'org.springframework.boot:spring-boot-starter-data-redis'
 implementation 'it.ozimov:embedded-redis:0.7.2'
+testCompile group: 'com.github.kstyrc', name: 'embedded-redis', version: '0.6'
 ```
 
 
@@ -24,7 +35,15 @@ implementation 'it.ozimov:embedded-redis:0.7.2'
 ### Embedded Redis 설정 추가
 
 ```java
-@Profile("local")
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
+import redis.embedded.RedisServer;
+
+import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
+
+//@Profile("local")
 @Configuration
 public class EmbeddedRedisConfig {
 
@@ -59,6 +78,7 @@ spring:
   redis:
     host: localhost
     port: 6379
+    database: 0
 ```
 
 
@@ -83,36 +103,152 @@ spring:
 > **캐시 key별로 유효시간 설정**, 캐시 key에 유효시간을 설정하지 않은 경우에도 default 유효시간으로 캐시가 생성되도록 세팅 (default가 없다면 캐시가 지워지지 않으므로 메모리 부족)
 
 ```java
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.EnableCaching;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.data.redis.connection.RedisConnectionFactory;
+import org.springframework.data.redis.connection.jedis.JedisConnectionFactory;
+import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.serializer.Jackson2JsonRedisSerializer;
+import org.springframework.data.redis.serializer.StringRedisSerializer;
+
+import com.ssafy.sub.dto.Token;
+
+import lombok.RequiredArgsConstructor;
+
 @RequiredArgsConstructor
 @EnableCaching
 @Configuration
 public class RedisConfig {
+	
+	@Value("${spring.redis.host}")
+    private String redisHost;
 
-    @Bean(name = "cacheManager")
-    public RedisCacheManager cacheManager(RedisConnectionFactory connectionFactory) {
+    @Value("${spring.redis.port}")
+    private int redisPort;
 
-        RedisCacheConfiguration configuration = RedisCacheConfiguration.defaultCacheConfig()
-                .disableCachingNullValues() // null value 캐시안함
-                .entryTtl(Duration.ofSeconds(CacheKey.DEFAULT_EXPIRE_SEC)) // 캐시의 기본 유효시간 설정
-                .computePrefixWith(CacheKeyPrefix.simple())
-                .serializeKeysWith(RedisSerializationContext.SerializationPair.fromSerializer(new StringRedisSerializer())); // redis 캐시 데이터 저장방식을 StringSeriallizer로 지정
+    @Value("${spring.redis.database}")
+    private int redisDatabase;
 
-// 캐시키별 default 유효시간 설정
-        Map<String, RedisCacheConfiguration> cacheConfigurations = new HashMap<>();
-        cacheConfigurations.put(CacheKey.USER, RedisCacheConfiguration.defaultCacheConfig()
-                .entryTtl(Duration.ofSeconds(CacheKey.USER_EXPIRE_SEC)));
-        cacheConfigurations.put(CacheKey.BOARD, RedisCacheConfiguration.defaultCacheConfig()
-                .entryTtl(Duration.ofSeconds(CacheKey.BOARD_EXPIRE_SEC)));
-        cacheConfigurations.put(CacheKey.POST, RedisCacheConfiguration.defaultCacheConfig()
-                .entryTtl(Duration.ofSeconds(CacheKey.POST_EXPIRE_SEC)));
-        cacheConfigurations.put(CacheKey.POSTS, RedisCacheConfiguration.defaultCacheConfig()
-                .entryTtl(Duration.ofSeconds(CacheKey.POST_EXPIRE_SEC)));
+	
+	@Bean
+    public RedisConnectionFactory redisConnectionFactory() {
+        LettuceConnectionFactory lettuceConnectionFactory = new LettuceConnectionFactory();
+        lettuceConnectionFactory.setHostName(redisHost);
+        lettuceConnectionFactory.setPort(redisPort);
+        lettuceConnectionFactory.setDatabase(redisDatabase);
+        return lettuceConnectionFactory;
+    }
+	
+    @Bean
+    public RedisTemplate<String, Object> redisTemplate() {
+        RedisTemplate<String, Object> redisTemplate = new RedisTemplate<>();
+        redisTemplate.setConnectionFactory(redisConnectionFactory());
+        redisTemplate.setKeySerializer(new StringRedisSerializer());
 
-        return RedisCacheManager.RedisCacheManagerBuilder.fromConnectionFactory(connectionFactory).cacheDefaults(configuration)
-                .withInitialCacheConfigurations(cacheConfigurations).build();
+        //객체를 json 형태로 깨지지 않고 받기 위한 직렬화 작업
+        redisTemplate.setValueSerializer(new Jackson2JsonRedisSerializer<>(Token.class));
+        return redisTemplate;
     }
 }
 ```
+
+
+
+
+
+
+
+### 토큰 유효성 체크
+
+Redis에 토큰이 있는 경우엔 valid하지 않은 토큰으로 처리
+
+```java
+    // 토큰의 유효성 + 만료일자 확인
+    public boolean validateToken(String jwtToken) {
+        try {
+        	System.out.println(redisTemplate.opsForValue().get(jwtToken));
+        	if(redisTemplate.opsForValue().get(jwtToken) != null) return false;
+            Jws<Claims> claims = Jwts.parser().setSigningKey(secretKey).parseClaimsJws(jwtToken);
+            return !claims.getBody().getExpiration().before(new Date());
+        } catch (Exception e) {
+            return false;
+        }
+    }
+```
+
+
+
+### UserSecurityController.java
+
+```java
+	// 로그인
+	@ApiOperation(value = "로그인 후 user정보를 반환한다.", response = Result.class)
+	@PostMapping("/login")
+	public ResponseEntity<Result> login(@RequestBody Map<String, String> user, HttpServletResponse response) {
+		System.out.println(user.toString());
+
+		User member = userRepository.findByUid(user.get("uid")).orElseThrow(
+				() -> new RestException(StatusCode.NOT_FOUND, ResponseMessage.LOGIN_FAIL_ID, HttpStatus.NOT_FOUND));
+
+		if (!passwordEncoder.matches(user.get("upw"), member.getUpw())) {
+			throw new RestException(StatusCode.NOT_FOUND, ResponseMessage.LOGIN_FAIL_PW, HttpStatus.NOT_FOUND);
+		}
+
+		Map<String, String> result = new HashMap<String, String>();
+		result.put("uid", member.getUid());
+		result.put("uemail", member.getUemail());
+		result.put("unick", member.getUnick());
+
+		// JWT 생성
+		String token = jwtTokenProvider.createToken(member, member.getRoles());
+		response.addHeader("X-AUTH-TOKEN", token);
+		result.put("token", token);
+		
+		ValueOperations<String, Object> vop = redisTemplate.opsForValue();
+		Token jsonToken=new Token();
+		jsonToken.setUsername(member.getUid());
+		jsonToken.setRefreshToken(token);
+		vop.set(member.getUid(), jsonToken);
+		
+		System.out.println("Redis 확인: "+redisTemplate.opsForValue().get(member.getUid()));
+//		System.out.println("Redis 확인: "+redisTemplate.opsForValue().get(member.getU);
+		return new ResponseEntity<Result>(new Result(StatusCode.OK, ResponseMessage.LOGIN_SUCCESS, result),
+				HttpStatus.OK);
+	}
+
+
+	// 로그아웃
+	@ApiOperation(value = "로그아웃.", response = Result.class)
+	@GetMapping("/logout")
+	public ResponseEntity<Result> logout(HttpServletRequest request) {
+		System.out.println("logout");
+		
+		String username = null;
+		String token = jwtTokenProvider.resolveToken(request);
+		if(jwtTokenProvider.validateToken(token)) {
+			username = jwtTokenProvider.getUName(token);
+			
+			Date expirationDate = jwtTokenProvider.getExpirationDate(token);
+			System.out.println("Redis 확인: "+redisTemplate.opsForValue().get(username));
+			redisTemplate.delete(username);
+			System.out.println("Redis 확인: "+redisTemplate.opsForValue().get(username));
+//			log.info("redis value : "+redisTemplate.opsForValue().get(Constant.REDIS_PREFIX + token));
+			
+			String accessToken = token;
+//			logger.info(" logout ing : " + accessToken);
+	        redisTemplate.opsForValue().set(accessToken, new Token(accessToken, null));
+	        redisTemplate.expire(accessToken, 10*6*1000, TimeUnit.MILLISECONDS);
+	        System.out.println("Redis 확인: "+redisTemplate.opsForValue().get(token));
+		}
+
+		return new ResponseEntity<Result>(new Result(StatusCode.OK, ResponseMessage.LOGIN_SUCCESS, null), HttpStatus.OK);
+	}
+```
+
+
 
 
 
@@ -379,3 +515,4 @@ public void clearCache(){}
 ### 참조
 
 * https://daddyprogrammer.org/post/3870/spring-rest-api-redis-caching/
+* [https://velog.io/@tlatldms/Spring-boot-Spring-security-JWT-Redis-mySQL-2%ED%8E%B8](https://velog.io/@tlatldms/Spring-boot-Spring-security-JWT-Redis-mySQL-2편)
