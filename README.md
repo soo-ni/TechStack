@@ -25,6 +25,8 @@
 
   * [[Spring Security] 1. Spring Security](https://github.com/soo-ni/TechStack/blob/master/Web/%5BSpring%20Security%5D%201.%20Spring%20Security.md)
   * [[Spring Security] 2. Spring Security + JWT](https://github.com/soo-ni/TechStack/blob/master/Web/%5BSpring%20Security%5D%202.%20Spring%20Security%20%2B%20JWT.md)
+  * [[Spring Security] 3. Spring Security + JWT + Redis](https://github.com/soo-ni/TechStack/blob/sooni/Web/%5BSpring%20Security%5D%203.%20Spring%20Security%20%2B%20JWT%20%2B%20Redis.md)
+  * [[Spring Security] 4. Spring Security + JWT + Redis - CORS 오류 수정](https://github.com/soo-ni/TechStack/blob/sooni/Web/%5BSpring%20Security%5D%204.%20Spring%20Security%20%2B%20JWT%20%2B%20Redis%20-%20CORS%20%EC%98%A4%EB%A5%98%20%EC%88%98%EC%A0%95.md) 
 
   
 
