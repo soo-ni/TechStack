@@ -45,4 +45,5 @@
 * Docker + AWS
 
   * [[Docker+AWS] Spring boot + Docker + AWS](https://github.com/soo-ni/TechStack/blob/master/Web/%5BDocker%26AWS%5D%20Spring%20boot%20%2B%20Docker%20%2B%20AWS.md)
+  * [[Docker+AWS] Spring boot + MySQL + Docker + AWS](https://github.com/soo-ni/TechStack/blob/master/Web/%5BDocker%26AWS%5D%20Spring%20boot%20%2B%20MySQL%20%2B%20Docker%20%2B%20AWS.md)
 
