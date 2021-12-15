@@ -6,7 +6,7 @@
 ## 전통적인 동기 방식의 쿼리와 문제
 
 * 쿼리 요청 (Thread) => 쿼리 작업 (DB) => 결과 응답
-  * ![image-20211215233703478](C:\Users\ksb94\AppData\Roaming\Typora\typora-user-images\image-20211215233703478.png)
+  * ![image](https://user-images.githubusercontent.com/19357410/146220631-226f52f8-b269-4f30-8d72-f22da4725fce.png)
 * 쿼리 작업 시 **응답이 올 때까지 대기**해야하는 문제 발생
 * 이를 위해서 `Connection Pool`, `Thread Pool`이 사용되었다.
 
@@ -36,7 +36,7 @@
 ### 비동기 처리?
 
 * 응답을 대기하지 않고 계속적으로 처리
-  * ![image-20211215233945745](C:\Users\ksb94\AppData\Roaming\Typora\typora-user-images\image-20211215233945745.png)
+  * ![image](https://user-images.githubusercontent.com/19357410/146220663-9bddef47-cdd8-4c44-a0d7-8f2107f68fa2.png)
 
 ## MySQL 비동기 지원
 
@@ -45,9 +45,10 @@
 
 ### X DevAPI
 
-![image-20211216003211953](C:\Users\ksb94\AppData\Roaming\Typora\typora-user-images\image-20211216003211953.png)
+![image](https://user-images.githubusercontent.com/19357410/146220697-ad0e589b-38b3-4be4-bf18-3f83cdd95c4d.png)
 
 * 새로 추가된 부분
+
   * X Protocol
   * NoSQL을 몰라도 개발 가능
 
@@ -78,8 +79,9 @@
   * getSession => CompletableFuture => executeAsync() => 로직 수행 => rowsFuture.get()
 
 * **ISSUE**
+
   * session이 많아질수록 성능이 떨어짐 (session이 1개일 경우 가장 성능이 좋음)
-  * ![image-20211215234437651](C:\Users\ksb94\AppData\Roaming\Typora\typora-user-images\image-20211215234437651.png)
+  * ![image](https://user-images.githubusercontent.com/19357410/146220732-85b1ad60-e425-43c2-bee3-f5db4246286b.png)
   * 원인 분석
     * executeAsync()를 요청할 때 마다 dispatchingThreadMonitor에 lock을 걸고있음
     * ListenerDispatcher => while문 마다 lock을 걸고있음
@@ -115,7 +117,7 @@
 
 ### X DevAPI vs. jasync-SQL
 
-![image-20211215234934537](C:\Users\ksb94\AppData\Roaming\Typora\typora-user-images\image-20211215234934537.png)
+![image](https://user-images.githubusercontent.com/19357410/146220764-6057cd31-a4e4-4216-899d-ffe0efa35bbe.png)
 
 * R2DBC 내부적으로 jasync-SQL 사용
 
@@ -160,13 +162,13 @@ CompletableFuture<QueryResult> future = connection.sendPreparedStatement(sql)
 
 #### 테스트
 
-![image-20211215235500538](C:\Users\ksb94\AppData\Roaming\Typora\typora-user-images\image-20211215235500538.png)
+![image](https://user-images.githubusercontent.com/19357410/146220791-22504e0e-b25b-46e4-8054-62441031b125.png)
 
 #### Stored Procedure
 
 API방식으로 Transaction을 처리할 때 성능이 낮아지는 문제를 어느정도 줄일 수 있다.
 
-![image-20211215235525361](C:\Users\ksb94\AppData\Roaming\Typora\typora-user-images\image-20211215235525361.png)
+![image](https://user-images.githubusercontent.com/19357410/146220812-12f5ac63-00ea-44ea-856f-744f8215f156.png)
 
 ## 정리
 
