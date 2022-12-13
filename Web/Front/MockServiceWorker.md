@@ -1,4 +1,4 @@
-# Mock Server Worker
+# Mock Service Worker
 
 ## MSW란?
 MSW는 서비스 워커를 사용해 HTTP 요청을 가로채 모의 응답을 보내는 API 도구이다. 백엔드 개발이 안됐을 때 유용하게 사용 가능하다.
@@ -77,6 +77,6 @@ if (process.env.NODE_ENV === 'development') {
 
 
 ### 참고
-* [Mock Server Worker](https://mswjs.io/)
+* [Mock Service Worker](https://mswjs.io/)
 * [Service Worker](https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API)
 * [Vue.js test using msw](https://www.vuemastery.com/blog/mock-service-worker-api-mocking-for-vuejs-development-testing/)
